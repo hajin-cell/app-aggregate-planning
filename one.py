@@ -463,20 +463,32 @@ st.sidebar.caption("값을 바꾸면 모든 탭이 자동으로 다시 계산됩
 n_periods = st.sidebar.slider("📅 계획 기간 (개월)", 3, 12,
                               value=len(DEFAULT_DEMAND))
 
+# ── 수요 입력값 session_state 초기화 (위젯 생성 전에 default 세팅) ──
+for i in range(n_periods):
+    key = f"d_{i}_{n_periods}"
+    if key not in st.session_state:
+        st.session_state[key] = DEFAULT_DEMAND[i] if i < len(DEFAULT_DEMAND) else 2200
+
+
+def _reset_demand():
+    """기본값 복원 콜백 — 위젯 렌더링 전에 호출되어 안전하게 state 변경."""
+    for i in range(n_periods):
+        st.session_state[f"d_{i}_{n_periods}"] = (
+            DEFAULT_DEMAND[i] if i < len(DEFAULT_DEMAND) else 2200
+        )
+
+
 with st.sidebar.expander("📈 월별 수요 (대)", expanded=True):
     demand_input = []
     cols = st.columns(2)
     for i in range(n_periods):
         with cols[i % 2]:
-            default_val = DEFAULT_DEMAND[i] if i < len(DEFAULT_DEMAND) else 2200
             demand_input.append(st.number_input(
                 f"{i+1}월", min_value=0, max_value=20_000,
-                value=default_val, step=100, key=f"d_{i}_{n_periods}"
+                step=100, key=f"d_{i}_{n_periods}"
             ))
-    if st.button("🔄 강의록 기본값 복원", use_container_width=True):
-        for i in range(min(len(DEFAULT_DEMAND), n_periods)):
-            st.session_state[f"d_{i}_{n_periods}"] = DEFAULT_DEMAND[i]
-        st.rerun()
+    st.button("🔄 강의록 기본값 복원", use_container_width=True,
+              on_click=_reset_demand)
 
 with st.sidebar.expander("👷 초기/최종 조건"):
     initial_workforce = st.number_input("초기 인력 W₀ (명)", 1, 500,
